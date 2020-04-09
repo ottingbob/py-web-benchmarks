@@ -1,0 +1,42 @@
+
+version: '3.7'
+
+services:
+
+  bjoern-falcon:
+    build:
+      context: bjoern-3.7
+    container_name: bfalc
+    ports:
+      - 7331:7331
+
+  bjoern-hug:
+    build:
+      context: bjoern-hug-3.7
+    container_name: bhug
+    ports:
+      - 7331:7331
+
+  cherrypy-bottle:
+    build:
+      context: cherrypy-3.7
+    container_name: chpy
+    ports:
+      - 7331:7331
+
+  gunicorn-flask:
+    build:
+      context: gunicorn-3.7
+    container_name: guni
+    ports:
+      - 7331:7331
+
+  uvicorn-fastapi:
+    build:
+      context: uvicorn-3.7
+      dockerfile: alp.Dockerfile
+    container_name: uvi
+    ports:
+      - 7331:7331
+    environment: 
+      PORT: 7331
