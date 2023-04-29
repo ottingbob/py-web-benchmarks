@@ -112,19 +112,61 @@ if __name__ == "__main__":
         print(f"Unable to find or get/download: {benchmark_tool}")
         sys.exit(1)
 
-    # Ensure that we have a project and a report structure passed in
-    if len(sys.argv) < 3:
-        print("Need to provide a [project directory] and [report] as arguments.")
-
+    # Ensure that we have a project passed in
+    if len(sys.argv) < 2:
+        print("Need to provide a [project directory] as arguments.")
+        sys.exit(1)
     project_directory = sys.argv[1]
-    report = sys.argv[2]
 
-    # Construct the path to the project dockerfile
-    path = Path(f"{project_directory}/Dockerfile")
-    path.mkdir(exist_ok=True, parents=True)
+    # Make sure that the directory exists
+    project_directory_path = Path(f"{FILE_LOCATION}/{project_directory}")
+    if not project_directory_path.exists() or not project_directory_path.is_dir():
+        print(
+            f"Project directory: [{project_directory_path}] needs to exist and be a directory."
+        )
+        sys.exit(1)
+
+    # TODO: Make sure the docker file exists
+    # project_dockerfile = Path(f"{project_directory}/Dockerfile")
+    # ...
+
+    docker_image = f"pywebbench/{project_directory}:0.1"
+    print(f"Building docker image: {docker_image}")
+    result = RUN(
+        f'docker build -q -f {project_directory}/Dockerfile -t "{docker_image}" {project_directory}'
+    )
+    if result.returncode != 0:
+        print(f"Failed to build [{docker_image}]: {str(result.stderr.decode())}")
+        sys.exit(1)
+
+    print(f"Build success with: {result.stdout.decode()}")
+    print(f"Running docker image in background for benchmark: {docker_image}")
+    result = RUN(f'docker run -d -p 7331:7331 "{docker_image}"')
+    if result.returncode != 0:
+        print(f"Failed to run [{docker_image}]: {str(result.stderr.decode())}")
+        sys.exit(1)
+    container_id = result.stdout.decode()[:13]
+
+    # TODO: Make sure docker container is ready to receive requests
+    # ...
+    import time
+
+    time.sleep(2)
 
     # Run report
-    print(f"Creating benchmark report for {project_directory}")
-    command = "echo lets run it"
-    result = RUN(command)
-    print(result)
+    # TODO: Print default report args...
+    # TODO: Depending the the benchmark tool this should be loaded from a default config
+    print(f"Creating 10s benchmark report for {project_directory}")
+    benchmark_command = "echo 'GET http://localhost:7331/' | vegeta attack -duration=10s -workers=100 -rate=10000/s | tee results.bin | vegeta report"
+    benchmark_report_filters = " | grep -v 'read: connection reset by peer' | uniq"
+    result = RUN(benchmark_command + benchmark_report_filters)
+    if result.returncode == 0:
+        print(f"{result.stdout.decode()}")
+    print("Benchmark completed !!")
+
+    # Stop the container
+    print(f"Stopping docker container: [{container_id}]")
+    result = RUN(f'docker stop "{container_id}"')
+    if result.returncode != 0:
+        print(f"Failed to stop [{container_id}]: {str(result.stderr.decode())}")
+        sys.exit(1)

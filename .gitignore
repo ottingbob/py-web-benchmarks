@@ -9,3 +9,6 @@ start-runner.sh
 # Benchmarking tools
 vegeta*
 vegeta*/**
+
+# Output files
+results.bin

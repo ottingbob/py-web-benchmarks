@@ -8,4 +8,4 @@ COPY main.py .
 
 EXPOSE 7331
 
-CMD ["uvicorn", "main:app", "--reload", "--port", "7331"]
+CMD ["uvicorn", "main:app", "--reload", "--host", "0.0.0.0", "--port", "7331"]
