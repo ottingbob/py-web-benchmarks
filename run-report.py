@@ -9,8 +9,11 @@ from typing import Dict
 
 import requests
 
+import term_colors
+
 FILE_LOCATION = os.path.dirname(__file__)
 RUN = functools.partial(subprocess.run, capture_output=True, shell=True)
+log = term_colors.TermLogger(__name__)
 
 
 class BenchmarkTools:
@@ -134,7 +137,7 @@ if __name__ == "__main__":
 
     # Build the docker image
     docker_image = f"pywebbench/{project_directory}:0.1"
-    print(f"🛠️ Building docker image: {docker_image}")
+    log.infoc(f"🛠️ Building docker image: {docker_image}", "green")
     result = RUN(
         f'docker build -q -f {project_directory}/Dockerfile -t "{docker_image}" {project_directory}'
     )
@@ -142,17 +145,19 @@ if __name__ == "__main__":
         print(f"Failed to build [{docker_image}]: {str(result.stderr.decode())}")
         sys.exit(1)
     success = result.stdout.decode().replace("\n", "")
-    print(f"✅ Build success with: {success}")
+    log.infoc(f"✅ Build success with hash: {success}", "yellow")
 
     # Run the docker image
-    print(f"🚀 Running docker image in background for benchmark: {docker_image}")
+    log.infoc(
+        f"🚀 Running docker image in background for benchmark: {docker_image}", "green"
+    )
     result = RUN(f'docker run -d -p 7331:7331 "{docker_image}"')
     if result.returncode != 0:
         print(f"Failed to run [{docker_image}]: {str(result.stderr.decode())}")
         sys.exit(1)
     container_id = result.stdout.decode()[:13]
 
-    print(f"🇬🇴 Creating benchmark report for: {project_directory}")
+    log.infoc(f"🇬🇴 Creating benchmark report for: {project_directory}", "blue")
 
     # TODO: Make sure docker container is ready to receive requests
     import time
@@ -168,7 +173,7 @@ if __name__ == "__main__":
     }
     benchmark_args_print = ", ".join(f"{k}: {v}" for k, v in benchmark_args.items())
     benchmark_args_cmd = " ".join(f"-{k}={v}" for k, v in benchmark_args.items())
-    print(f"📝 Running benchmark with args: [{benchmark_args_print}]\n")
+    log.infoc(f"📝 Running benchmark with args: [{benchmark_args_print}]\n")
 
     # Construct benchmark command
     benchmark_report_filters = " | grep -v 'read: connection reset by peer' | uniq"
@@ -178,15 +183,15 @@ if __name__ == "__main__":
     )
     result = RUN(benchmark_command)
     if result.returncode == 0:
-        print(result.stdout.decode())
-        print("🏁 Benchmark completed !!")
+        log.infoc(result.stdout.decode(), color_all=True)
+        log.infoc("🏁 Benchmark completed 🏁", color_all=True)
     else:
         print(
             f"Failed to execute benchmark command [{benchmark_command}]: {result.stderr.decode()}"
         )
 
     # Stop the container
-    print(f"⏹️  Stopping docker container: [{container_id}]")
+    log.infoc(f"⏹️  Stopping docker container: [{container_id}]", "yellow")
     result = RUN(f'docker stop "{container_id}"')
     if result.returncode != 0:
         print(f"Failed to stop [{container_id}]: {str(result.stderr.decode())}")
