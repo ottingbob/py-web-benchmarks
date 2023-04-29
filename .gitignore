@@ -1,5 +1,11 @@
 __pycache__/
 .env
+
+# TODO: These files didn't make it. Creating a runner to get the output right now...
 local-proc.py
 proc-runner.py
 start-runner.sh
+
+# Benchmarking tools
+vegeta*
+vegeta*/**
