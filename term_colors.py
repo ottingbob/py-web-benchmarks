@@ -1,4 +1,6 @@
 import logging
+import re
+import string
 from contextlib import contextmanager
 
 logging.basicConfig(
@@ -56,6 +58,7 @@ class TermLogger:
         self.info(msg, bold=True, color=color, color_value=True, color_all=color_all)
 
     def info(self, msg: str, *args, **kwargs):
+
         # We look for the `:` to only color after it
         color_all = kwargs.get("color_all", False)
         del kwargs["color_all"]
@@ -66,6 +69,11 @@ class TermLogger:
         if kwargs.get("color_value", None) and not color_all:
             del kwargs["color_value"]
             color_value = True
+
+            # Check if message has unicode:
+            # Regex that matches any character that is not a word character, whitespace or comma
+            if matches := re.findall(r"[^\w\s,]", msg):
+                matches = list(filter(lambda m: m not in string.punctuation, matches))
 
             # TODO: Handle unicode chars and length etc.
             # Get the index and the parts of the message
@@ -81,21 +89,23 @@ class TermLogger:
 
         if kwargs.get("bold", None):
             del kwargs["bold"]
-            msg = f"{TermColors.BOLD}{msg}{TermColors.ENDC}"
+            msg = f"{TermColors.BOLD}{msg}"
 
         if color := kwargs.get("color", None):
             del kwargs["color"]
             match color:
                 case "yellow":
-                    msg = f"{TermColors.OKYELLOW}{msg}{TermColors.ENDC}"
+                    msg = f"{TermColors.OKYELLOW}{msg}"
                 case "blue":
-                    msg = f"{TermColors.OKBLUE}{msg}{TermColors.ENDC}"
+                    msg = f"{TermColors.OKBLUE}{msg}"
                 case "green":
-                    msg = f"{TermColors.OKGREEN}{msg}{TermColors.ENDC}"
+                    msg = f"{TermColors.OKGREEN}{msg}"
                 case _:
                     raise ValueError(f"Unknown color [{color}]")
 
         if color_value:
             msg = msg_before + msg
+
+        msg += f"{TermColors.ENDC}"
 
         self._logger.info(msg, *args, *kwargs)

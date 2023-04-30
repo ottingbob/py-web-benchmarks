@@ -2,8 +2,20 @@
 
 The purpose of this project is to benchmark the findings of the different WSGI / ASGI python server & framework combinations available at this time. Its difficult to actually have a `best` implementation since there are so many permutations available with linux distos in docker, wsgi servers, and the server frameworks. For the sake of this benchmark I have tried to scope it to number of requests. The details are shown below (this is the same as benchmark-report.md).
 
-### uvicorn-3.7 Dockerfile source:<br/>
-> https://github.com/tiangolo/uvicorn-gunicorn-docker/blob/master/python3.7-alpine3.8/Dockerfile
+I plan on re-running these once I get a python script to orchestrate it. It would be fun to make some new versions of these projects / dockerfiles since this benchmark is from __2020__ and using `python 3.7`...
+
+## Usage
+
+The `run-report.py` script outputs the containerized benchmark through a python script. Additionally it downloads the benchmarking tool for my linux distro
+
+Here is an example of running the benchmark for the [/uvicorn-3.7](/uvicorn-3.7) project:
+> `python run-report.py uvicorn-3.7/`
+
+![Demo](assets/report-demo.gif)
+
+`run-report.py` works with only the standard lib. It is able to print basic checkpoints (with emoji support!). I still need to include the generation to run through the whole suite of projects and generate a markdown file
+
+![Script](assets/report-script-output.png)
 
 ## Python Benchmark Results
 
@@ -18,8 +30,7 @@ The purpose of this project is to benchmark the findings of the different WSGI /
 
 <br>
 
-
-#### results from bjoern-3.7 benchmark 
+##### results from bjoern-3.7 benchmark
 
 `echo "GET http://localhost:7331/" | vegeta attack -duration=10s -workers=200 -rate=20000/s | tee results.bin | vegeta report`
 
@@ -34,7 +45,7 @@ The purpose of this project is to benchmark the findings of the different WSGI /
     Get http://localhost:7331/: dial tcp 0.0.0.0:0->[::1]:7331: socket: too many open files
 
 
-#### results from bjoern-hug-3.7 benchmark
+##### results from bjoern-hug-3.7 benchmark
 
 `echo "GET http://localhost:7331/" | vegeta attack -duration=10s -workers=100 -rate=10000/s | tee results.bin | vegeta report`
 
@@ -49,7 +60,7 @@ The purpose of this project is to benchmark the findings of the different WSGI /
     Get http://localhost:7331/v1/: dial tcp 0.0.0.0:0->[::1]:7331: socket: too many open files
 
 
-#### results from cherrypy-3.7 benchmark
+##### results from cherrypy-3.7 benchmark
 
 `echo "GET http://localhost:7331/" | vegeta attack -duration=10s -workers=30 -rate=2000/s | tee results.bin | vegeta report`
 
@@ -64,7 +75,7 @@ The purpose of this project is to benchmark the findings of the different WSGI /
     Get http://localhost:7331/: dial tcp 0.0.0.0:0->[::1]:7331: socket: too many open files
 
 
-#### results from gunicorn-3.7 benchmark
+##### results from gunicorn-3.7 benchmark
 
 `echo "GET http://localhost:7331/" | vegeta attack -duration=10s -workers=200 -rate=20000/s | tee results.bin | vegeta report`
 
@@ -93,7 +104,7 @@ The purpose of this project is to benchmark the findings of the different WSGI /
     Get http://localhost:7331/: dial tcp 0.0.0.0:0->127.0.0.1:7331: socket: too many open files
 
 
-#### results from uvicorn-3.7 benchmark
+##### results from uvicorn-3.7 benchmark
 
 `echo "GET http://localhost:7331/" | vegeta attack -duration=10s -workers=100 -rate=10000/s | tee results.bin | vegeta report`
 
@@ -106,3 +117,8 @@ The purpose of this project is to benchmark the findings of the different WSGI /
     Status Codes  [code:count]                      0:25675  200:74235  
     Error Set:
     Get http://localhost:7331/: dial tcp 0.0.0.0:0->[::1]:7331: socket: too many open files
+
+### Resources
+
+##### uvicorn-3.7 Dockerfile source:<br/>
+> https://github.com/tiangolo/uvicorn-gunicorn-docker/blob/master/python3.7-alpine3.8/Dockerfile

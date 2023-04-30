@@ -137,7 +137,7 @@ if __name__ == "__main__":
 
     # Build the docker image
     docker_image = f"pywebbench/{project_directory}:0.1"
-    log.infoc(f"🛠️ Building docker image: {docker_image}", "green")
+    log.infoc(f"🛠️ Building docker image: {docker_image}", "blue")
     result = RUN(
         f'docker build -q -f {project_directory}/Dockerfile -t "{docker_image}" {project_directory}'
     )
@@ -149,7 +149,7 @@ if __name__ == "__main__":
 
     # Run the docker image
     log.infoc(
-        f"🚀 Running docker image in background for benchmark: {docker_image}", "green"
+        f"🚀 Running docker image in background for benchmark: {docker_image}", "blue"
     )
     result = RUN(f'docker run -d -p 7331:7331 "{docker_image}"')
     if result.returncode != 0:
@@ -157,7 +157,7 @@ if __name__ == "__main__":
         sys.exit(1)
     container_id = result.stdout.decode()[:13]
 
-    log.infoc(f"🇬🇴 Creating benchmark report for: {project_directory}", "blue")
+    log.infoc(f"🇬🇴 Creating benchmark report for project: {project_directory}", "green")
 
     # TODO: Make sure docker container is ready to receive requests
     import time
@@ -168,12 +168,16 @@ if __name__ == "__main__":
     # TODO: Depending the the benchmark tool this should be loaded from a default config
     benchmark_args = {
         "duration": "10s",
-        "workers": "100",
-        "rate": "10000/s",
+        # "workers": "100",
+        "workers": "10",
+        # "rate": "10000/s",
+        "rate": "1000/s",
     }
     benchmark_args_print = ", ".join(f"{k}: {v}" for k, v in benchmark_args.items())
     benchmark_args_cmd = " ".join(f"-{k}={v}" for k, v in benchmark_args.items())
-    log.infoc(f"📝 Running benchmark with args: [{benchmark_args_print}]\n")
+    log.infoc(
+        f"📝 Running benchmark with args: [{benchmark_args_print}]\n", color="yellow"
+    )
 
     # Construct benchmark command
     benchmark_report_filters = " | grep -v 'read: connection reset by peer' | uniq"
@@ -184,7 +188,7 @@ if __name__ == "__main__":
     result = RUN(benchmark_command)
     if result.returncode == 0:
         log.infoc(result.stdout.decode(), color_all=True)
-        log.infoc("🏁 Benchmark completed 🏁", color_all=True)
+        log.infoc("🏁 Benchmark completed 🏁", color="green", color_all=True)
     else:
         print(
             f"Failed to execute benchmark command [{benchmark_command}]: {result.stderr.decode()}"
