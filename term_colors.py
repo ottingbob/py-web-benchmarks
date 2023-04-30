@@ -94,6 +94,8 @@ class TermLogger:
         if color := kwargs.get("color", None):
             del kwargs["color"]
             match color:
+                case "header":
+                    msg = f"{TermColors.HEADER}{msg}"
                 case "yellow":
                     msg = f"{TermColors.OKYELLOW}{msg}"
                 case "blue":

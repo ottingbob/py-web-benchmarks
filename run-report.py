@@ -7,12 +7,29 @@ from typing import List
 
 import term_colors
 from benchmark_tools import BenchmarkTools
+from markdown_generation import Markdown
 
 FILE_LOCATION = os.path.dirname(__file__)
 RUN = functools.partial(subprocess.run, capture_output=True, shell=True)
 log = term_colors.TermLogger(__name__)
 
-# TODO: Add markdown generation support
+
+def capture_project_benchmark_markdown(
+    project_directory: str, command: str, command_output: str
+) -> str:
+    benchmark_md_path = Path(
+        f"{FILE_LOCATION}/benchmark-reports/{project_directory}.md"
+    )
+    benchmark_md_path.touch(exist_ok=True)
+    tabbed_command_output = "\n\t".join(command_output.split("\n"))
+    # Apply to the first line of the joined tabbed output
+    tabbed_command_output = "\t" + tabbed_command_output
+    markdown_text = (
+        f"##### {project_directory} benchmark"
+        + f"\n\n`{command}`"
+        + f"\n\n{tabbed_command_output}"
+    )
+    benchmark_md_path.write_text(markdown_text)
 
 
 def get_projects() -> List[str]:
@@ -85,11 +102,12 @@ def run_project_benchmark(project_directory: str):
     # Get benchmark arguments
     # TODO: Depending the the benchmark tool this should be loaded from a default config
     benchmark_args = {
-        "duration": "10s",
+        "duration": "20s",
         # "workers": "100",
         "workers": "10",
         # "rate": "10000/s",
-        "rate": "1000/s",
+        # "rate": "1000/s",
+        "rate": "5000/s",
     }
     benchmark_args_print = ", ".join(f"{k}: {v}" for k, v in benchmark_args.items())
     benchmark_args_cmd = " ".join(f"-{k}={v}" for k, v in benchmark_args.items())
@@ -98,14 +116,13 @@ def run_project_benchmark(project_directory: str):
     )
 
     # Construct benchmark command
+    benchmark_base = f"echo 'GET http://localhost:7331/' | vegeta attack {benchmark_args_cmd} | tee results.bin | vegeta report"
     benchmark_report_filters = " | grep -v 'read: connection reset by peer' | uniq"
-    benchmark_command = (
-        f"echo 'GET http://localhost:7331/' | vegeta attack {benchmark_args_cmd} | tee results.bin | vegeta report"
-        + benchmark_report_filters
-    )
+    benchmark_command = benchmark_base + benchmark_report_filters
     result = RUN(benchmark_command)
     if result.returncode == 0:
-        log.infoc(result.stdout.decode(), color_all=True)
+        benchmark_output = result.stdout.decode()
+        log.infoc(benchmark_output, color_all=True)
         log.infoc("🏁 Benchmark completed 🏁", color="green", color_all=True)
     else:
         print(
@@ -119,6 +136,15 @@ def run_project_benchmark(project_directory: str):
         print(f"Failed to stop [{container_id}]: {str(result.stderr.decode())}")
         sys.exit(1)
 
+    log.infoc(
+        f"📸 Capturing benchmark report in markdown: [benchmark-reports/{project_directory}.md]",
+        "header",
+    )
+    # Generate the report markdown
+    capture_project_benchmark_markdown(
+        project_directory, benchmark_base, benchmark_output
+    )
+
 
 if __name__ == "__main__":
     # Double check to make sure benchmarking tool is installed
@@ -126,6 +152,16 @@ if __name__ == "__main__":
     if not BenchmarkTools(benchmark_tool).is_found_or_download():
         print(f"Unable to find or get/download: {benchmark_tool}")
         sys.exit(1)
+
+    # TODO: Get better CLI validation
+    if len(sys.argv) == 3:
+        arg_2 = sys.argv[2]
+        if arg_2 == "generate":
+            Markdown(get_projects()).generate_readme()
+            sys.exit(0)
+        print(f"Unable to run command with arg: {arg_2}")
+        sys.exit(1)
+        ##### results from bjoern-3.7 benchmark
 
     # Ensure that we have a project passed in
     if len(sys.argv) < 2:
