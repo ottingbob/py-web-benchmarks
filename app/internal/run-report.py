@@ -2,9 +2,9 @@ import functools
 import os
 import subprocess
 import sys
-from pathlib import Path, PurePath
-from typing import List
+from pathlib import Path
 
+from app.internal.benchmark_project import Project
 from app.internal.benchmark_tools import BenchmarkTools
 from app.internal.markdown_generation import Markdown
 from app.internal.term_colors import TermLogger
@@ -15,67 +15,23 @@ RUN = functools.partial(subprocess.run, capture_output=True, shell=True)
 log = TermLogger(__name__)
 
 
-def get_projects() -> List[str]:
-    # TODO: Fix `bjoern-hug-3.7`
-    exclude = [".git", "__pycache__", ".ruff_cache", "bjoern-hug-3.7"]
-    projects = []
-    for path, dirs, files in os.walk(FILE_LOCATION, topdown=True):
-        # This is described in: `help(os.walk)`
-        # dirs[:] = value modifies dirs in-place. It changes the contents of the list dirs without changing the container
-        dirs[:] = [d for d in dirs if d not in exclude]
-
-        # Check for an `app/main.py` directory / file in project
-        # Check for a dockerfile in project
-        main_path = Path(path + "/app/main.py")
-        if "app" in dirs and "Dockerfile" in files and main_path.exists():
-            path = PurePath(path)
-            projects.append(path.name)
-    return projects
-
-
-def verify_project(project_directory: str):
-    # Make sure that the directory exists
-    project_directory_path = Path(f"{FILE_LOCATION}/{project_directory}")
-    if not project_directory_path.exists() or not project_directory_path.is_dir():
-        print(
-            f"Project directory: [{project_directory_path}] needs to exist and be a directory."
-        )
-        sys.exit(1)
-
-    # Make sure the docker file exists
-    project_dockerfile_path = Path(f"{FILE_LOCATION}/{project_directory}/Dockerfile")
-    if not project_directory_path.exists() or not project_directory_path.is_dir():
-        print(f"Did not find Dockerfile at: [{project_dockerfile_path}]")
-        sys.exit(1)
-
-
 def run_project_benchmark(project_directory: str):
     # Verify the project first
-    verify_project(project_directory)
+    project = Project(project_directory)
 
     # Build the docker image
-    docker_image = f"pywebbench/{project_directory}:0.1"
-    log.infoc(f"🛠️ Building docker image: {docker_image}", "blue")
-    result = RUN(
-        f'docker build -q -f {project_directory}/Dockerfile -t "{docker_image}" {project_directory}'
-    )
-    if result.returncode != 0:
-        print(f"Failed to build [{docker_image}]: {str(result.stderr.decode())}")
-        sys.exit(1)
-    success = result.stdout.decode().replace("\n", "")
-    log.infoc(f"✅ Build success with hash: {success}", "yellow")
+    log.infoc(f"🛠️ Building docker image: {project.docker_image}", "blue")
+    build_success_hash = project.docker_build()
+    log.infoc(f"✅ Build success with hash: {build_success_hash}", "yellow")
 
     # Run the docker image
     log.infoc(
-        f"🚀 Running docker image in background for benchmark: {docker_image}", "blue"
+        f"🚀 Running docker image in background for benchmark: {project.docker_image}",
+        "blue",
     )
-    result = RUN(f'docker run -d -p 7331:7331 "{docker_image}"')
-    if result.returncode != 0:
-        print(f"Failed to run [{docker_image}]: {str(result.stderr.decode())}")
-        sys.exit(1)
-    container_id = result.stdout.decode()[:13]
+    container_id = project.docker_run()
 
-    log.infoc(f"🇬🇴 Creating benchmark report for project: {project_directory}", "green")
+    log.infoc(f"🇬🇴 Creating benchmark report for project: {project}", "green")
 
     # TODO: Make sure docker container is ready to receive requests
     import time
@@ -86,7 +42,7 @@ def run_project_benchmark(project_directory: str):
     # TODO: Benchmark construction should go into a different file
     # TODO: Depending the the benchmark tool this should be loaded from a default config
     benchmark_args = {
-        "duration": "20s",
+        "duration": "5s",
         # "workers": "100",
         "workers": "10",
         # "rate": "10000/s",
@@ -115,13 +71,10 @@ def run_project_benchmark(project_directory: str):
 
     # Stop the container
     log.infoc(f"⏹️  Stopping docker container: [{container_id}]", "yellow")
-    result = RUN(f'docker stop "{container_id}"')
-    if result.returncode != 0:
-        print(f"Failed to stop [{container_id}]: {str(result.stderr.decode())}")
-        sys.exit(1)
+    project.docker_stop(container_id)
 
     log.infoc(
-        f"📸 Capturing benchmark report in markdown: [benchmark-reports/{project_directory}.md]",
+        f"📸 Capturing benchmark report in markdown: [benchmark-reports/{project}.md]",
         "header",
     )
     # Generate the report markdown
@@ -132,7 +85,6 @@ def run_project_benchmark(project_directory: str):
 
 def report():
     # Double check to make sure benchmarking tool is installed
-    print(FILE_LOCATION)
     benchmark_tool = "vegeta"
     if not BenchmarkTools(benchmark_tool).is_found_or_download():
         print(f"Unable to find or get/download: {benchmark_tool}")
@@ -142,11 +94,10 @@ def report():
     if len(sys.argv) == 3:
         arg_2 = sys.argv[2]
         if arg_2 == "generate":
-            Markdown(get_projects()).generate_readme()
+            Markdown(Project.get_projects()).generate_readme()
             sys.exit(0)
         print(f"Unable to run command with arg: {arg_2}")
         sys.exit(1)
-        ##### results from bjoern-3.7 benchmark
 
     # Ensure that we have a project passed in
     if len(sys.argv) < 2:
@@ -157,7 +108,7 @@ def report():
     # Check if project directory is `all` to run all projects
     if project_directory == "all":
         # Get the projects and run each benchmark
-        for project in get_projects():
+        for project in Project.get_projects():
             run_project_benchmark(project)
             print()
     else:
