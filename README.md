@@ -10,10 +10,20 @@ Output is generated in the [`/benchmark-reports`](/benchmark-reports) through th
 
 ## Usage
 
+Make changes and test it out by getting `poetry` and running the following:
+```bash
+$ poetry install
+
+$ poetry run report all
+
+$ poetry run report all generate
+```
+
 The `run-report.py` script outputs the containerized benchmark through a python script. Additionally it downloads the benchmarking tool for my linux distro
 
 Here is an example of running the benchmark for the [/uvicorn-3.7](/uvicorn-3.7) project:
-> `python run-report.py uvicorn-3.7/`
+> `poetry run report uvicorn-3.7`
+> `python app/internal/run-report.py uvicorn-3.7`
 
 ![Demo](assets/report-demo.gif)
 
