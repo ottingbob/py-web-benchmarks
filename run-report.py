@@ -14,24 +14,6 @@ RUN = functools.partial(subprocess.run, capture_output=True, shell=True)
 log = term_colors.TermLogger(__name__)
 
 
-def capture_project_benchmark_markdown(
-    project_directory: str, command: str, command_output: str
-) -> str:
-    benchmark_md_path = Path(
-        f"{FILE_LOCATION}/benchmark-reports/{project_directory}.md"
-    )
-    benchmark_md_path.touch(exist_ok=True)
-    tabbed_command_output = "\n\t".join(command_output.split("\n"))
-    # Apply to the first line of the joined tabbed output
-    tabbed_command_output = "\t" + tabbed_command_output
-    markdown_text = (
-        f"##### {project_directory} benchmark"
-        + f"\n\n`{command}`"
-        + f"\n\n{tabbed_command_output}"
-    )
-    benchmark_md_path.write_text(markdown_text)
-
-
 def get_projects() -> List[str]:
     # TODO: Fix `bjoern-hug-3.7`
     exclude = [".git", "__pycache__", ".ruff_cache", "bjoern-hug-3.7"]
@@ -100,6 +82,7 @@ def run_project_benchmark(project_directory: str):
     time.sleep(2)
 
     # Get benchmark arguments
+    # TODO: Benchmark construction should go into a different file
     # TODO: Depending the the benchmark tool this should be loaded from a default config
     benchmark_args = {
         "duration": "20s",
@@ -141,7 +124,7 @@ def run_project_benchmark(project_directory: str):
         "header",
     )
     # Generate the report markdown
-    capture_project_benchmark_markdown(
+    Markdown.capture_project_benchmark_markdown(
         project_directory, benchmark_base, benchmark_output
     )
 

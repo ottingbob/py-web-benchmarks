@@ -10,6 +10,24 @@ class Markdown:
     def __init__(self, projects: List[str]):
         self._projects = projects
 
+    @staticmethod
+    def capture_project_benchmark_markdown(
+        project_directory: str, command: str, command_output: str
+    ) -> str:
+        benchmark_md_path = Path(
+            f"{FILE_LOCATION}/benchmark-reports/{project_directory}.md"
+        )
+        benchmark_md_path.touch(exist_ok=True)
+        tabbed_command_output = "\n\t".join(command_output.split("\n"))
+        # Apply to the first line of the joined tabbed output
+        tabbed_command_output = "\t" + tabbed_command_output
+        markdown_text = (
+            f"##### {project_directory} benchmark"
+            + f"\n\n`{command}`"
+            + f"\n\n{tabbed_command_output}"
+        )
+        benchmark_md_path.write_text(markdown_text)
+
     @property
     def projects(self) -> List[str]:
         return self._projects
@@ -86,12 +104,8 @@ class Markdown:
         )
         readme_md.write_text(readme_benchmark_stubs)
 
-    def generate_readme(self):
-        # Start by clearing the previous benchmark results
-        self.clear_benchmark_results()
-
-        # Now update the readme with results from the `benchmark-reports/` directory
-
+    # This should always be called through generate_readme
+    def _write_benchmark_results(self):
         # Read in the readme text into an array by each line
         readme_md = Path(f"{FILE_LOCATION}/README.md")
         readme_text = readme_md.read_text().split("\n")
@@ -108,3 +122,10 @@ class Markdown:
                     readme_text[idx] = project_bench_md
 
         readme_md.write_text("\n".join(readme_text))
+
+    def generate_readme(self):
+        # Start by clearing the previous benchmark results
+        self.clear_benchmark_results()
+
+        # Now update the readme with results from the `benchmark-reports/` directory
+        self._write_benchmark_results()
