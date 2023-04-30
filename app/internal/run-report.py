@@ -5,13 +5,14 @@ import sys
 from pathlib import Path, PurePath
 from typing import List
 
-import term_colors
-from benchmark_tools import BenchmarkTools
-from markdown_generation import Markdown
+from app.internal.benchmark_tools import BenchmarkTools
+from app.internal.markdown_generation import Markdown
+from app.internal.term_colors import TermLogger
 
-FILE_LOCATION = os.path.dirname(__file__)
+BASE_DIR_LOCATION = Path(os.path.dirname(__file__)).parent.parent
+FILE_LOCATION = BASE_DIR_LOCATION
 RUN = functools.partial(subprocess.run, capture_output=True, shell=True)
-log = term_colors.TermLogger(__name__)
+log = TermLogger(__name__)
 
 
 def get_projects() -> List[str]:
@@ -129,8 +130,9 @@ def run_project_benchmark(project_directory: str):
     )
 
 
-if __name__ == "__main__":
+def report():
     # Double check to make sure benchmarking tool is installed
+    print(FILE_LOCATION)
     benchmark_tool = "vegeta"
     if not BenchmarkTools(benchmark_tool).is_found_or_download():
         print(f"Unable to find or get/download: {benchmark_tool}")
@@ -161,3 +163,7 @@ if __name__ == "__main__":
     else:
         # Run the project benchmark
         run_project_benchmark(project_directory)
+
+
+if __name__ == "__main__":
+    report()

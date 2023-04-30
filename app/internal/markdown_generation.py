@@ -3,7 +3,7 @@ import re
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
-FILE_LOCATION = os.path.dirname(__file__)
+FILE_LOCATION = Path(os.path.dirname(__file__)).parent.parent
 
 
 class Markdown:

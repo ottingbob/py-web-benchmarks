@@ -7,7 +7,7 @@ readme = "README.md"
 packages = [{include = "app/internal"}]
 
 [tool.poetry.scripts]
-serve = "app.internal.__main__:serve"
+report = "app.internal.run-report:report"
 
 [tool.poetry.dependencies]
 python = "^3.11"

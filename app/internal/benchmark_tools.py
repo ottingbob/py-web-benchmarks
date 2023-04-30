@@ -9,7 +9,7 @@ from typing import Dict
 
 import requests
 
-FILE_LOCATION = os.path.dirname(__file__)
+FILE_LOCATION = Path(os.path.dirname(__file__)).parent.parent
 RUN = functools.partial(subprocess.run, capture_output=True, shell=True)
 
 
